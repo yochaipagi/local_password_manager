@@ -5,6 +5,7 @@ import tkinter.messagebox
 from tkinter import *
 from tkinter import dialog, simpledialog, messagebox
 import pyperclip
+import json
 password = ""
 
 
@@ -28,8 +29,7 @@ def generate_password():
     password = ''.join(password_list)
     password_entry.insert(0, password)
     pyperclip.copy(password)
-
-
+ 
 
 def validate_entries():
     if website_entry.get() == "":
@@ -47,12 +47,16 @@ def add_password():
         website = website_entry.get()
         email = email_entry.get()
         password = password_entry.get()
-        save_flag = messagebox.askokcancel(title=website,
-                                           message=f"These are the details entered: \nEmail: {email} \nPassword: {password} save?")
-        if not save_flag:
-            return
-        with open("data.txt", "a") as data_file:
-            data_file.write(f"{website} | {email} | {password}\n")
+        new_data = {website: {"email": email, "password": password}}
+        try:
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)
+                data.update(new_data)
+        except FileNotFoundError:
+            data = new_data
+        with open("data.json", "w") as data_file:
+            json.dump(data, data_file, indent=4)
+
         messagebox.showinfo("Information", "Your password added properly")
         password_entry.delete(0, END)
         website_entry.delete(0, END)
@@ -60,6 +64,21 @@ def add_password():
     else:
         messagebox.showerror("Error", "Please fill all the entries")
 
+
+def search_password_button():
+    global password
+    website = website_entry.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data = json.load(data_file)
+            if website in data:
+                email = data[website]["email"]
+                password = data[website]["password"]
+                messagebox.showinfo("Information", f"Email: {email}\nPassword: {password}")
+            else:
+                messagebox.showerror("Error", "Website not found")
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No data file found")
 
 # ---------------------------- UI SETUP ------------------------------- #
 
@@ -92,6 +111,8 @@ generate_password_button = Button(text="Generate Password", command=generate_pas
 generate_password_button.grid(column=2, row=3)
 add_button = Button(text="Add", width=33, command=add_password)
 add_button.grid(column=1, row=4, columnspan=2)
+search_password_button = Button(text="Search", width=13 , command=search_password_button)
+search_password_button.grid(column=2, row=1)
 # #User_Dialog
 # user_common_email = simple-dialog.askstring("Email", "Enter your email")
 # # with open(user_common_email, "w") as user_email_file:
